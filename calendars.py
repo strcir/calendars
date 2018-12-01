@@ -1,8 +1,13 @@
+#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
+
+"""Provides functions to convert between several different calendars
+that are of interest to me and to report the current date in each calendar."""
+
+__author__ = "Strahinja Ciric"
+
 from math import *
 import datetime
-
-# Created 15 March 2015
 
 greg_monthnames = {1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December"}
 lc_monthnames = {0: "UGAS Day", 1: "Unifex", 2: "Bifex", 3: "Trifex", 4: "Quadrifex", 5: "Quintafex", 6: "Hexafex", 7: "Septafex", 8: "Octafex", 9: "Nonafex", 10: "Decafex", 11: "Solafex", 12: "Lunafex", 13: "Foryfex"}
@@ -20,6 +25,18 @@ slav_daynames = {0: u"Nedělja", 1: u"Ponedělŭkŭ", 2: u"Vŭtorŭkŭ", 3: u"Se
 fr_daynames = {1: "Primidi", 2: "Duodi", 3: "Tridi", 4: "Quartidi", 5: "Quintidi", 6: "Sextidi", 7: "Septidi", 8: "Octidi", 9: "Nonidi", 10: u"Décadi"}
 
 def leapyear(year):
+    """Determine whether a year of the Gregorian calendar is a leap year.
+
+    Parameters
+    ----------
+    year : int
+        A year in the Gregorian calendar.
+
+    Returns
+    -------
+    bool
+        True if and only if the year is a leap year.
+    """
     leap = True
     if (not(year % 4 == 0)):
         leap = False
@@ -30,6 +47,18 @@ def leapyear(year):
     return leap
 
 def greg_dayinyear(date):
+    """Find, for any given date in the Gregorian calendar, which day in the year it is out of 365.
+
+    Parameters
+    ----------
+    date : [int, int, int]
+        A list of day (of the month), month, and year in the Gregorian calendar.
+
+    Returns
+    -------
+    int
+        The day in the year (out of 365) that the date represents.
+    """
     greg_monthlengths = {1:31, 2:28, 3:31, 4:30, 5:31, 6:30, 7:31, 8:31, 9:30, 10:31, 11:30, 12:31}
     i = 1
     total = 0
@@ -37,42 +66,98 @@ def greg_dayinyear(date):
         total = total + greg_monthlengths[i]
         i += 1
     total = total + date[0]
-    if ((leapyear(date[2])) and (total > 59) and (date[1] != 2)):
+    DAYS_BEFORE_LEAPDAY = 59
+    if ((leapyear(date[2])) and (total > DAYS_BEFORE_LEAPDAY) and (date[1] != 2)):
         total += 1
     return total
 
 def greg_weekday(date):
+    """Find, for any given date in the Gregorian calendar, which day of the week it is.
+    
+    Parameters
+    ----------
+    date : [int, int, int]
+        A list of day (of the month), month, and year in the Gregorian calendar.
+
+    Returns
+    -------
+    int
+        The number of the day of the week, starting with Sunday as 0.
+    """
     month = date[1]
     year = date[2]
+    DAYS_IN_WEEK = 7
+    MONTHS_IN_YEAR = 12
     if (month < 3):
-        month += 12
+        month += MONTHS_IN_YEAR
         year -= 1
     day = date[0] + 2*month + (3*(month + 1) / 5) + year + (year / 4) - (year / 100) + (year / 400) + 1
-    day = (day % 7)
+    day = (day % DAYS_IN_WEEK)
     return day
 
 def greg_to_positivist(date):
-    positivist_date = [0,0,date[2] - 1788]
-    if positivist_date[2] < -1787:
+    """Convert a date in the Gregorian calendar to a date in the Positivist calendar.
+    
+    Parameters
+    ----------
+    date : [int, int, int]
+        A list of day (of the month), month, and year in the Gregorian calendar.
+
+    Returns
+    -------
+    [int, int, int]
+        A list of day (of the month), month, and year in the Positivist calendar.
+    """
+    POSITIVIST_YEAR_ZERO = 1788
+    positivist_date = [0,0,date[2] - POSITIVIST_YEAR_ZERO]
+    if positivist_date[2] < (-POSITIVIST_YEAR_ZERO + 1): #if the date is BC
         positivist_date[2] += 1
     dayinyear = greg_dayinyear(date)
-    positivist_date[0] = dayinyear % 28
-    positivist_date[1] = (dayinyear - 1) / 28 + 1
+    DAYS_IN_POSITIVIST_MONTH = 28
+    MONTHS_IN_POSITIVIST_YEAR = 13
+    positivist_date[0] = dayinyear % DAYS_IN_POSITIVIST_MONTH
+    positivist_date[1] = (dayinyear - 1) / DAYS_IN_POSITIVIST_MONTH + 1
     if positivist_date[0] == 0:
-        positivist_date[0] = 28
-    if positivist_date[1] == 14:
-        positivist_date[1] = 13
-        positivist_date[0] += 28
+        positivist_date[0] = DAYS_IN_POSITIVIST_MONTH
+    if positivist_date[1] == (MONTHS_IN_POSITIVIST_YEAR + 1):
+        positivist_date[1] = MONTHS_IN_POSITIVIST_YEAR
+        positivist_date[0] += DAYS_IN_POSITIVIST_MONTH
     return positivist_date
 
 def positivist_weekday(positivist_date):
+    """Find, for any given date in the Positivist calendar, which day of the week it is.
+    
+    Parameters
+    ----------
+    positivist_date : [int, int, int]
+        A list of day (of the month), month, and year in the Positivist calendar.
+
+    Returns
+    -------
+    int
+        The number of the day of the week, starting with Sunday as 0.
+    """
     date = positivist_date[0]
-    day = (date % 7)
-    if date > 28:
-        day = 7
+    DAYS_IN_POSITIVIST_MONTH = 28
+    DAYS_IN_WEEK = 7
+    day = (date % DAYS_IN_WEEK)
+    if date > DAYS_IN_POSITIVIST_MONTH:
+        day = 7 #Year Day
     return day
 
 def greg_to_fixed(date):
+    """Convert a date in the Gregorian calendar to a date in the International Fixed calendar.
+    
+    Parameters
+    ----------
+    date : [int, int, int]
+        A list of day (of the month), month, and year in the Gregorian calendar.
+
+    Returns
+    -------
+    [int, int, int]
+        A list of day (of the month), month, and year in the International Fixed calendar.
+    """
     fixed_date = [0,0,date[2]]
     dayinyear = greg_dayinyear(date)
     fixed_date[0] = dayinyear % 28
